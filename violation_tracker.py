@@ -1,80 +1,99 @@
+#This code detects vehicle are crossing lines and take snapshot of them.
+  
 import cv2
-import cvzone
 import math
-from datetime import datetime
+import numpy as np
 from ultralytics import YOLO
+import os
 
 # Load the YOLO model
 model = YOLO('yolo_models/yolov8n.pt')
 
 # Function to process each frame
-def process_frame(frame, line_positions, cross_percentage, min_confidence=20, resize=None):
+def process_frame(frame, line_positions, cross_percentage, roi_points, snapshot_callback, min_confidence=20, resize=None, snapshot_flags=None):
     if resize:
         frame = cv2.resize(frame, resize)
-    results = model(frame, stream=True)
 
-    # Define colors for the lines
+    mask = np.zeros_like(frame)
+    cv2.fillPoly(mask, [np.array(roi_points)], (255, 255, 255))
+    masked_frame = cv2.bitwise_and(frame, mask)
+
+    results = model(masked_frame, stream=True)
     line_colors = [(0, 255, 255), (0, 165, 255), (0, 0, 255)]  # Yellow, Orange, Red
-    line_names = ["yellow", "orange", "red"]
+
+    if snapshot_flags is None:
+        snapshot_flags = [False, False, False]  # Flags for each line
+
     for r in results:
         boxes = r.boxes
         for box in boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
             confident_number = math.ceil(box.conf[0] * 100)
-            cls = int(box.cls[0])
-            currentClass = classNames[cls]
 
-            if currentClass in ["car", "truck", "bus", "motorbike"] and confident_number > min_confidence:
-                cvzone.putTextRect(frame, f'{currentClass} {confident_number}', (max(0, x1), max(35, y1)), scale=1, thickness=1)
-                cvzone.cornerRect(frame, (x1, y1, x2-x1, y2-y1), l=5)
-
-                # Calculate the crossing threshold based on the percentage
+            if confident_number > min_confidence:
                 crossing_threshold = y2 - (y2 - y1) * (cross_percentage / 100.0)
+                bbox_color = (255, 0, 255)  # Initial color (pink)
+                annotation_text = ""
 
-                # Check if the crossing threshold of the vehicle's bounding box is beyond the first line
-                if crossing_threshold > line_positions[0]:
-                    text = "Vehicle crossed" if crossing_threshold <= line_positions[1] else "Violation"
-                    text_color = line_colors[0] if crossing_threshold <= line_positions[1] else line_colors[1]
-                    cv2.putText(frame, text, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color, 2)
+                for i, line_y in enumerate(line_positions):
+                    if crossing_threshold > line_y and not snapshot_flags[i]:
+                        snapshot_callback(frame)
+                        snapshot_flags[i] = True
 
-    # Draw the lines
+                cv2.rectangle(frame, (x1, y1), (x2, y2), bbox_color, 1)
+                text_position = (x1, y2 + 20)
+
+                if annotation_text:
+                    cv2.putText(frame, annotation_text, text_position, cv2.FONT_HERSHEY_SIMPLEX, 0.5, bbox_color, 1)
+
     for i, line_y in enumerate(line_positions):
-        cv2.line(frame, (0, line_y), (frame.shape[1], line_y), line_colors[i], 2)
+        cv2.line(frame, (0, line_y), (frame.shape[1], line_y), line_colors[i], 1)
 
-    return frame
+    cv2.polylines(frame, [np.array(roi_points)], True, (255, 255, 255), 1)
+
+    return frame, snapshot_flags
+
+
+def take_snapshot(frame, frame_count, snapshot_dir="snapshots"):
+    if not os.path.exists(snapshot_dir):
+        os.makedirs(snapshot_dir)
+    
+    snapshot_filename = os.path.join(snapshot_dir, f"snapshot_{frame_count}.jpg")
+    cv2.imwrite(snapshot_filename, frame)
+    print(f"Snapshot saved: {snapshot_filename}")
+
 
 def main(video_path, model_path, stop_line_y=200, cross_percentage=60, resize=None):
     model = YOLO(model_path)
     cap = cv2.VideoCapture(video_path)
+    frame_count = 0
+    snapshot_flags = None  # Initialize snapshot flags
 
     while True:
         success, frame = cap.read()
         if not success:
             break
-            
-        line_positions = [200, 300, 400]  # Example positions for the three lines
-        processed_frame = process_frame(frame, line_positions, cross_percentage=40, resize=(640, 480))
 
+        line_positions = [200, 300, 400]
+        roi_points = [(250, 100), (350, 100), (400, 470), (0, 470)]
+
+        processed_frame, snapshot_flags = process_frame(
+            frame, line_positions, cross_percentage, roi_points,
+            lambda f: take_snapshot(f, frame_count),
+            snapshot_flags=snapshot_flags, resize=(640, 480)
+        )
 
         cv2.imshow("Vehicle Detection", processed_frame)
-        
+
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
+
+        frame_count += 1
 
     cap.release()
     cv2.destroyAllWindows()
 
-
 if __name__ == "__main__":
-    classNames = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
-              "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-              "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-              "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat",
-              "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
-              "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli",
-              "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
-              "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
-              "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
-              "teddy bear", "hair drier", "toothbrush"
-              ]
-    main("footages/videos/input_video_04.mp4", "yolo_models/yolov8n.pt", resize=(640, 480))
+    main("footages/videos/input_video_06.mp4", "yolo_models/yolov8n.pt", resize=(640, 480))
+
+# End of the program
