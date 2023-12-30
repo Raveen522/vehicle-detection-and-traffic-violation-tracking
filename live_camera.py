@@ -1,7 +1,6 @@
 import cv2
 from datetime import datetime
-import time
-import threading
+
 
 
 # Function to make label with background color and text color

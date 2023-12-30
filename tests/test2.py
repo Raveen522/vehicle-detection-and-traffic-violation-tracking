@@ -1,5 +1,5 @@
 #this code detect vehicles are crossing 3 defined lines
-#don't change this code. save it for future learns.
+#don't change this code. save it for future studies.
 
 
 import cv2
