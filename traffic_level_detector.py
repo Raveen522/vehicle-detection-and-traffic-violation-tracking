@@ -6,8 +6,8 @@ from vehicle_detector import VehicleDetector
 vd = VehicleDetector()
 
 # Load the image
-# img_footage = cv2.imread("footages/images/input_image_low_traffic.png") # low traffic
-img_footage = cv2.imread("footages/images/input_image_mid_traffic.png") # mid traffic
+img_footage = cv2.imread("footages/images/input_image_low_traffic.png") # low traffic
+# img_footage = cv2.imread("footages/images/input_image_mid_traffic.png") # mid traffic
 # img_footage = cv2.imread("footages/images/input_image_high_traffic.png") # high traffic
 
 # Define the three ROIs
