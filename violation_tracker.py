@@ -1,5 +1,4 @@
 #This code detects vehicle are crossing lines and take snapshot of them.
-
 import cv2
 import math
 import numpy as np
@@ -44,12 +43,12 @@ def overlay_info(camera_id, signal_light_id, signal_status, road_id, frame):
     draw_label(frame,date_string,(20, 42))
 #---------------------------------------------------------------------
 
-
 # Load the YOLO model
 model = YOLO('yolo_models/yolov8n.pt')
 
 # Function to process each frame
-def process_frame(frame, line_positions, cross_percentage, roi_points, snapshot_callback, min_confidence=20, resize=None, snapshot_flags=None):
+def process_frame(frame, line_positions, cross_percentage, roi_points, 
+                  snapshot_callback, min_confidence=20, resize=None, snapshot_flags=None):
     if resize:
         frame = cv2.resize(frame, resize)
 
@@ -108,8 +107,7 @@ def take_snapshot(frame, frame_count, snapshot_dir="snapshots"):
     print(f"Snapshot saved: {snapshot_filename}")
 
 
-def main(video_path, model_path, stop_line_y=200, cross_percentage=60, resize=None):
-    model = YOLO(model_path)
+def main(video_path, stop_line_y=200, cross_percentage=60, resize=None):
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     snapshot_flags = None  # Initialize snapshot flags
@@ -121,15 +119,12 @@ def main(video_path, model_path, stop_line_y=200, cross_percentage=60, resize=No
 
         line_positions = [200, 300, 400]
         roi_points = [(250, 100), (350, 100), (400, 470), (0, 470)]
-
         processed_frame, snapshot_flags = process_frame(
             frame, line_positions, cross_percentage, roi_points,
             lambda f: take_snapshot(f, frame_count),
             snapshot_flags=snapshot_flags, resize=(640, 480)
         )
-
         cv2.imshow("Vehicle Detection", processed_frame)
-
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
@@ -140,13 +135,9 @@ def main(video_path, model_path, stop_line_y=200, cross_percentage=60, resize=No
 
 camera_id = 1
 signal_light_id = 123
-signal_status = "Green"
-# signal_status = "Yellow"
-# signal_status = "Red"
+signal_status = "Red"
 road_id = 456
 
-
 if __name__ == "__main__":
-    main("footages/videos/input_video_06.mp4", "yolo_models/yolov8n.pt", resize=(640, 480))
+    main("footages/videos/input_video_06.mp4", resize=(640, 480))
 
-# End of the program

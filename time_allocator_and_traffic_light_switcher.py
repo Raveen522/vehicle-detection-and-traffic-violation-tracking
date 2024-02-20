@@ -1,6 +1,3 @@
-#Time allocator & traffic light switcher
-
-
 import random
 import threading
 import time

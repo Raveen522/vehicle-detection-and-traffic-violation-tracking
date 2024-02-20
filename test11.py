@@ -1,69 +1,100 @@
-import cv2
-import numpy as np
-from ultralytics import YOLO
-from sort import Sort  # Make sure to have the SORT algorithm implementation
-import time
+import random
 
-# Initialize the YOLO model
-model = YOLO('yolo_models/yolov8n.pt')
+# Define traffic light constants
+GREEN = "GREEN"
+YELLOW = "YELLOW"
+RED = "RED"
 
-# Initialize SORT tracker
-tracker = Sort() 
+# Define road and traffic light mappings
+road_to_traffic_light = {
+    "C": "T3",
+    "D": "T4",
+    "B": "T2",
+    "A": "T1",
+    "E": "T5",
+    "F": "T6",
+}
 
-# Define the ROI coordinates
-roi_points = np.array([[350, 200], [700, 200], [700, 700], [10, 700]])
+traffic_light_to_road = {
+    "T1": "A",
+    "T2": "B",
+    "T3": "C",
+    "T4": "D",
+    "T5": "E",
+    "T6": "F",
+}
 
-# Function to process each frame
-def process_frame(frame):
-    mask = np.zeros_like(frame)
-    cv2.fillPoly(mask, [roi_points], (255, 255, 255))
-    masked_frame = cv2.bitwise_and(frame, mask)
+# Define the maximum green light and red light durations
+MAX_GREEN_LIGHT = 60
+MAX_RED_LIGHT = 120
+YELLOW_LIGHT_TIME = 5
 
-    results = model(masked_frame, stream=True)
+# Define a dummy vehicle detection function that returns random traffic levels
+def dummy_vehicle_detection(traffic_light_id):
+    return random.choice(["low", "mid", "high"])
 
-    # Extract bounding boxes and confidences
-    detections = []
-    for r in results:
-        for box in r.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            conf = box.conf[0]
-            detections.append([x1, y1, x2, y2, conf])
+# Define the main program loop
+iteration_number = 1
+while True:
+    # Get the current green, yellow, and red lights
+    green_lights = []
+    yellow_lights = []
+    red_lights = []
 
-    # Update SORT tracker with current detections
-    tracked_objects = tracker.update(np.array(detections))
+    # Determine the first set of green lights (C, D, A)
+    green_lights.extend(["T3", "T4", "T1"])
+    red_lights.extend(["T2", "T5", "T6"])
 
-    # Draw tracked objects and their IDs
-    for obj in tracked_objects:
-        x1, y1, x2, y2, obj_id = map(int, obj)
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.putText(frame, str(obj_id), (x1, y1 - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    cv2.polylines(frame, [roi_points], isClosed=True, color=(0, 255, 0), thickness=2)
-    
-    return frame, len(tracked_objects)
+    # Run the traffic light cycle for each set of green lights
+    for _ in range(3):
+        # Display the iteration number, detected traffic levels, and light assignments
+        print(f"Iteration No: {iteration_number}")
+        for traffic_light in green_lights:
+            detected_traffic_level = dummy_vehicle_detection(traffic_light)
+            print(f"Detected traffic level of {traffic_light}: {detected_traffic_level}")
+        print(f"Green: {', '.join([f'{light} -> {MAX_GREEN_LIGHT}s' for light in green_lights])}")
+        print(f"Red: {', '.join([f'{light} -> {MAX_RED_LIGHT}s' for light in red_lights])}")
+        print("-" * 40)
 
-# Main function to process the video
-def main(video_path):
-    cap = cv2.VideoCapture(video_path)
-    start_time = time.time()
+        # Simulate the yellow light phase
+        for _ in range(YELLOW_LIGHT_TIME):
+            # Update the traffic light states
+            for traffic_light in green_lights:
+                yellow_lights.append(traffic_light)
+            for traffic_light in red_lights:
+                red_lights.remove(traffic_light)
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+        # Simulate the red light phase
+        for _ in range(MAX_RED_LIGHT - YELLOW_LIGHT_TIME):
+            # Update the traffic light states
+            for traffic_light in yellow_lights:
+                red_lights.append(traffic_light)
+            for traffic_light in yellow_lights:
+                yellow_lights.remove(traffic_light)
 
-        processed_frame, vehicle_count = process_frame(frame)
+        # Determine the next set of green lights based on detected traffic levels
+        next_green_lights = []
+        for road in ["C", "B", "E"]:
+            traffic_light_id = road_to_traffic_light[road]
+            detected_traffic_level = dummy_vehicle_detection(traffic_light_id)
+            if detected_traffic_level == "low":
+                green_light_duration = 15
+            elif detected_traffic_level == "mid":
+                green_light_duration = 45
+            else:
+                green_light_duration = MAX_GREEN_LIGHT
+            if traffic_light_id not in red_lights:
+                next_green_lights.append(traffic_light_id)
 
-        # Display vehicle count every 3 seconds
-        if time.time() - start_time > 3:
-            print(f"Vehicle count: {vehicle_count}")
-            start_time = time.time()
+        # Update the green, yellow, and red lights for the next iteration
+        green_lights = next_green_lights
+        red_lights = [
+            traffic_light_id
+            for traffic_light_id in traffic_light_to_road.values()
+            if traffic_light_id not in green_lights
+        ]
 
-        cv2.imshow("Vehicle Tracking", processed_frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        # Check if the user wants to stop the program
+        # Add logic to accept user input to stop the program
 
-    cap.release()
-    cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main("footages/videos/input_video_04.mp4")
+        iteration_number += 1

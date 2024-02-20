@@ -1,14 +1,12 @@
 import cv2
 import numpy as np
-from vehicle_detector import VehicleDetector
+from vehicle_detector_v1 import VehicleDetector
 
 # Initialize vehicle detector
 vd = VehicleDetector()
 
 # Load the image
-img_footage = cv2.imread("footages/images/input_image_low_traffic.png") # low traffic
-# img_footage = cv2.imread("footages/images/input_image_mid_traffic.png") # mid traffic
-# img_footage = cv2.imread("footages/images/input_image_high_traffic.png") # high traffic
+img_footage = cv2.imread("footages/images/input_image_high_traffic.png") # high traffic
 
 # Define the three ROIs
 roi1_points = np.array([[200, 480], [900, 480], [1100, 750], [5, 750]], np.int32)
