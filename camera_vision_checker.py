@@ -1,30 +1,28 @@
 import cv2
+from sensor_based_check import *
+from weather_API import *
 
-def is_image_blurry(image_path, threshold=100.0):
-    # Load the image
-    image = cv2.imread(image_path)
-    # Convert to grayscale
+
+def variance_of_laplacian(image):
+    return cv2.Laplacian(image, cv2.CV_64F).var()
+
+image_path = 'footages/images/blur.png' 
+
+image = cv2.imread(image_path)
+if image is None:
+    print("Error loading image")
+else:
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # Apply Laplacian edge detection
-    laplacian = cv2.Laplacian(gray, cv2.CV_64F)
-    # Calculate the variance
-    variance = laplacian.var()
-    
-    # Determine if the image is blurry or clear
-    if variance < threshold:
-        print("Image is blurry. Variance:", variance)
-        return True
+    fm = variance_of_laplacian(gray)
+    threshold = 5000
+    if fm > threshold:
+        print(f"Image is blurry, focus measure: {fm}")
+        if sensor_check():
+            if get_weather():
+                print("Bad weather")
+            else:
+                print("Local location Error")
+        else:
+            print("Camera Error")
     else:
-        print("Image is clear. Variance:", variance)
-        return False
-
-# Example usage
-image_path = 'footages/images/blur.png'  # Change this to your image path
-is_image_blurry(image_path)
-
-# Example usage
-# image_path = 'footages/images/blur.png'  # Change this to your image path
-# image_path = 'footages/images/input_image_high_traffic.png'  # Change this to your image path
-# detect_edges_sobel(image_path)
-# detect_edges_canny(image_path)
-# detect_edges_laplacian(image_path)
+        print(f"Image is clear, focus measure: {fm}")
