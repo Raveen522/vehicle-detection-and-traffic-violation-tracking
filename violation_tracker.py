@@ -5,6 +5,7 @@ import numpy as np
 from ultralytics import YOLO
 import os
 from datetime import datetime
+from load_settings import*
 
 # Function to make label with background color and text color
 def draw_label(img, text, pos=(0, 0), text_color=(255, 255, 255), text_color_bg=(0, 0, 0)):
@@ -107,18 +108,20 @@ def take_snapshot(frame, frame_count, snapshot_dir="snapshots"):
     print(f"Snapshot saved: {snapshot_filename}")
 
 
+
 def main(video_path, stop_line_y=200, cross_percentage=60, resize=None):
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     snapshot_flags = None  # Initialize snapshot flags
+    Detection_ROI, line_positions  = violation_cords()
 
     while True:
         success, frame = cap.read()
         if not success:
             break
 
-        line_positions = [200, 300, 400]
-        roi_points = [(250, 100), (350, 100), (400, 470), (0, 470)]
+        line_positions = line_positions
+        roi_points = Detection_ROI
         processed_frame, snapshot_flags = process_frame(
             frame, line_positions, cross_percentage, roi_points,
             lambda f: take_snapshot(f, frame_count),

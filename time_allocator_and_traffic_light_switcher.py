@@ -1,33 +1,21 @@
 import random
-import threading
 import time
+from load_settings import*
 
 # Dummy function to simulate vehicle detection
 def dummy_vehicle_detection():
     return random.choice(['low', 'mid', 'high'])
 
 # Function to calculate green light time based on traffic level
+Low_lvl_time, Mid_lvl_time, High_lvl_time, Yellow_time  = lvl_timing()
+
 def calculate_green_time(traffic_level):
     if traffic_level == 'low':
-        return 15
+        return Low_lvl_time
     elif traffic_level == 'mid':
-        return 45
+        return Mid_lvl_time
     elif traffic_level == 'high':
-        return 60
-
-# Initialize the stop flag to False
-stop_flag = False
-
-# This function checks for the user input to stop the program
-def check_for_quit():
-    global stop_flag
-    input("Press 'Q' and Enter to stop the program at any time...")
-    stop_flag = True
-
-# Start the thread that listens for quit command
-quit_thread = threading.Thread(target=check_for_quit)
-quit_thread.daemon = True  # This ensures the thread will close when the main program exits
-quit_thread.start()
+        return High_lvl_time
 
 # Initialize the traffic lights status
 traffic_lights = {'T1': 'green', 'T2': 'red', 'T3': 'green', 'T4': 'green', 'T5': 'red', 'T6': 'green'}
@@ -35,10 +23,8 @@ green_light_sequence = ['T3', 'T2', 'T5']  # Order in which lights will turn gre
 iteration = 0
 
 # Main loop for the traffic light controller
-while not stop_flag:
+while True:
     for light in green_light_sequence:
-        if stop_flag:
-            break
 
         # Call dummy vehicle detection and calculate green time
         detected_traffic_level = dummy_vehicle_detection()
@@ -58,7 +44,7 @@ while not stop_flag:
         print("\n" + "-" * 37)
 
         # Simulate the green light duration and the yellow light duration
-        time.sleep(green_time + 5)
+        time.sleep(green_time + Yellow_time)
 
 # Print a message when the program is stopped
 print("Traffic light program terminated.")

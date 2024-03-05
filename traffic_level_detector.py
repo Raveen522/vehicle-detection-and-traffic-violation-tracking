@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 from vehicle_detector_v1 import VehicleDetector
+from load_settings import*
 
 # Initialize vehicle detector
 vd = VehicleDetector()
@@ -9,9 +10,10 @@ vd = VehicleDetector()
 img_footage = cv2.imread("footages/images/input_image_high_traffic.png") # high traffic
 
 # Define the three ROIs
-roi1_points = np.array([[200, 480], [900, 480], [1100, 750], [5, 750]], np.int32)
-roi2_points = np.array([[300, 345], [720, 345], [900, 475], [200, 475]], np.int32)
-roi3_points = np.array([[400, 200], [550, 200], [720, 340], [300, 340]], np.int32)
+ROI1, ROI2, ROI3 = level_ROI_cords()
+roi1_points = np.array(ROI1, np.int32)
+roi2_points = np.array(ROI2, np.int32)
+roi3_points = np.array(ROI3, np.int32)
 
 def add_transparent_roi(roi_points, color, img_footage):
     overlay = img_footage.copy()
